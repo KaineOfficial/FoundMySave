@@ -126,6 +126,26 @@ else
 }
 Console.WriteLine();
 
+// Controle des traductions. Une clef absente s'afficherait telle quelle dans la
+// fenetre, et un {0} oublie d'un cote ferait disparaitre une valeur : ces deux
+// defauts passent inapercus a la relecture, d'ou ce controle automatique.
+Console.WriteLine("CONTROLE DES TRADUCTIONS");
+Console.WriteLine(new string('-', 60));
+
+var placeholder = new System.Text.RegularExpressions.Regex(@"\{\d+\}");
+foreach (var (key, pair) in Loc.All)
+{
+    if (string.IsNullOrWhiteSpace(pair.Fr)) problems.Add($"traduction : '{key}' vide en francais");
+    if (string.IsNullOrWhiteSpace(pair.En)) problems.Add($"traduction : '{key}' vide en anglais");
+
+    var fr = placeholder.Matches(pair.Fr).Select(m => m.Value).OrderBy(v => v).ToArray();
+    var en = placeholder.Matches(pair.En).Select(m => m.Value).OrderBy(v => v).ToArray();
+    if (!fr.SequenceEqual(en))
+        problems.Add($"traduction : '{key}' n'a pas les memes valeurs a inserer ({string.Join(",", fr)} / {string.Join(",", en)})");
+}
+Console.WriteLine($"  {Loc.All.Count} clefs verifiees dans les deux langues.");
+Console.WriteLine();
+
 // Le dossier de travail de l'auto-test n'a plus lieu d'etre.
 try { Directory.Delete(Path.Combine(Path.GetTempPath(), "FoundMySave.SelfTest"), recursive: true); }
 catch { /* sans consequence */ }

@@ -24,18 +24,38 @@ public static class SaveExporter
     }
 
     /// <summary>
-    /// Ecrit la sauvegarde accompagnee de la marche a suivre pour un serveur dedie.
-    /// Renvoie le chemin du dossier cree.
+    /// Ecrit la sauvegarde accompagnee de la marche a suivre pour un serveur dedie,
+    /// dans la langue demandee. Renvoie le chemin du dossier cree.
     /// </summary>
-    public static string ExportForServer(GameSave save, string destinationFolder)
+    public static string ExportForServer(GameSave save, string destinationFolder, AppLanguage language)
     {
-        var folder = Path.Combine(destinationFolder, StripExtension(save.SuggestedFileName) + "_serveur");
+        var suffix = language == AppLanguage.French ? "_serveur" : "_server";
+        var folder = Path.Combine(destinationFolder, StripExtension(save.SuggestedFileName) + suffix);
         Directory.CreateDirectory(folder);
 
         File.WriteAllBytes(Path.Combine(folder, save.SuggestedFileName), save.Content);
-        File.WriteAllText(Path.Combine(folder, "LISEZ-MOI.txt"), BuildServerInstructions(save), new UTF8Encoding(true));
+
+        var guideName = language == AppLanguage.French ? "LISEZ-MOI.txt" : "README.txt";
+        var guide = language == AppLanguage.French ? FrenchGuide(save) : EnglishGuide(save);
+        File.WriteAllText(Path.Combine(folder, guideName), guide, new UTF8Encoding(true));
 
         return folder;
+    }
+
+    /// <summary>Entete commun aux deux langues : les valeurs ne se traduisent pas.</summary>
+    private static void AppendFacts(StringBuilder sb, GameSave save, bool french)
+    {
+        var worldName = StripExtension(save.SuggestedFileName);
+        var origin = save.Platform == Platform.GamePass ? "Game Pass" : "Steam";
+        if (save.WasCompressed)
+            origin += french ? ", decompresse par FoundMySave" : ", decompressed by FoundMySave";
+
+        sb.AppendLine($"{(french ? "Fichier" : "File"),-13}: {save.SuggestedFileName}");
+        sb.AppendLine($"{(french ? "Nom du monde" : "World name"),-13}: {worldName}");
+        if (save.SavedAt.HasValue)
+            sb.AppendLine($"{(french ? "Sauvegarde" : "Saved"),-13}: {save.SavedAt.Value:yyyy-MM-dd HH:mm} UTC");
+        sb.AppendLine($"{(french ? "Taille" : "Size"),-13}: {save.Size / 1024.0:0.#} KB");
+        sb.AppendLine($"{(french ? "Provenance" : "Source"),-13}: {origin}");
     }
 
     /// <summary>
@@ -43,21 +63,15 @@ public static class SaveExporter
     /// publiee par l'editeur, dont les deux pieges : ne jamais renommer le fichier, et
     /// ne jamais modifier la configuration pendant que le serveur tourne.
     /// </summary>
-    private static string BuildServerInstructions(GameSave save)
+    private static string FrenchGuide(GameSave save)
     {
         var worldName = StripExtension(save.SuggestedFileName);
-
         var sb = new StringBuilder();
+
         sb.AppendLine("INSTALLER CE MONDE SUR UN SERVEUR DEDIE");
         sb.AppendLine("=======================================");
         sb.AppendLine();
-        sb.AppendLine($"Fichier      : {save.SuggestedFileName}");
-        sb.AppendLine($"Nom du monde : {worldName}");
-        if (save.SavedAt.HasValue)
-            sb.AppendLine($"Sauvegarde   : {save.SavedAt.Value:dd/MM/yyyy HH:mm} (UTC)");
-        sb.AppendLine($"Taille       : {save.Size / 1024.0:0.#} Ko");
-        sb.AppendLine($"Provenance   : {(save.Platform == Platform.GamePass ? "Game Pass" : "Steam")}"
-                      + (save.WasCompressed ? ", decompresse par FoundMySave" : ""));
+        AppendFacts(sb, save, french: true);
         sb.AppendLine();
         sb.AppendLine("ETAPES");
         sb.AppendLine("------");
@@ -97,6 +111,58 @@ public static class SaveExporter
         sb.AppendLine("le seul moyen de les retrouver sur un serveur dedie.");
         sb.AppendLine();
         sb.AppendLine("Genere par FoundMySave - https://github.com/KaineOfficial/FoundMySave");
+
+        return sb.ToString();
+    }
+
+    private static string EnglishGuide(GameSave save)
+    {
+        var worldName = StripExtension(save.SuggestedFileName);
+        var sb = new StringBuilder();
+
+        sb.AppendLine("INSTALL THIS WORLD ON A DEDICATED SERVER");
+        sb.AppendLine("========================================");
+        sb.AppendLine();
+        AppendFacts(sb, save, french: false);
+        sb.AppendLine();
+        sb.AppendLine("STEPS");
+        sb.AppendLine("-----");
+        sb.AppendLine();
+        sb.AppendLine("1. Stop the server.");
+        sb.AppendLine("   On Linux:  sudo systemctl stop dragonwilds");
+        sb.AppendLine();
+        sb.AppendLine("2. Back up, then EMPTY the server's world folder,");
+        sb.AppendLine("   without deleting the folder itself:");
+        sb.AppendLine("     Linux    ~/rs_server/RSDragonwilds/Saved/SaveGames/");
+        sb.AppendLine("     Windows  Files\\RSDragonwilds\\Saved\\SaveGames\\");
+        sb.AppendLine();
+        sb.AppendLine($"3. Copy {save.SuggestedFileName} into it, WITHOUT RENAMING IT.");
+        sb.AppendLine("   The file name is the world name. Renaming it afterwards");
+        sb.AppendLine("   loses your progress.");
+        sb.AppendLine();
+        sb.AppendLine("4. In DedicatedServer.ini, set:");
+        sb.AppendLine($"     DefaultWorldName={worldName}");
+        sb.AppendLine("   That file lives in Saved/Config/LinuxServer/ on Linux,");
+        sb.AppendLine("   Saved/Config/WindowsServer/ on Windows.");
+        sb.AppendLine();
+        sb.AppendLine("5. Start the server again.");
+        sb.AppendLine("   On Linux:  sudo systemctl start dragonwilds");
+        sb.AppendLine();
+        sb.AppendLine("WORTH KNOWING");
+        sb.AppendLine("-------------");
+        sb.AppendLine();
+        sb.AppendLine("Any change made to DedicatedServer.ini while the server is");
+        sb.AppendLine("running is lost: stop it, edit, then start it again.");
+        sb.AppendLine();
+        sb.AppendLine($"In the public list, players search for \"{worldName}\",");
+        sb.AppendLine("the WORLD name and not the server name. It is case sensitive.");
+        sb.AppendLine();
+        sb.AppendLine("World settings (difficulty, keep inventory on death, friendly");
+        sb.AppendLine("fire) are stored inside this .sav file, not in the server");
+        sb.AppendLine("configuration. That is why importing your own world is the only");
+        sb.AppendLine("way to keep those settings on a dedicated server.");
+        sb.AppendLine();
+        sb.AppendLine("Generated by FoundMySave - https://github.com/KaineOfficial/FoundMySave");
 
         return sb.ToString();
     }

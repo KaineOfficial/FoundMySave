@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Threading;
+using FoundMySave.Core;
 
 namespace FoundMySave;
 
@@ -9,6 +10,11 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // Une langue deja choisie l'emporte sur celle de Windows.
+        var saved = Settings.LoadLanguage();
+        if (saved.HasValue)
+            Loc.Instance.Current = saved.Value;
+
         // Un imprevu ne doit jamais faire disparaitre la fenetre sans explication :
         // l'utilisateur type de cet outil ne saura pas lire un journal d'erreurs.
         DispatcherUnhandledException += OnUnhandledException;
@@ -17,9 +23,7 @@ public partial class App : Application
     private void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         MessageBox.Show(
-            "FoundMySave a rencontre un probleme inattendu.\n\n" +
-            e.Exception.Message +
-            "\n\nAucun de vos fichiers n'a ete modifie : l'outil ne fait que lire et copier.",
+            $"{Loc.Instance["Dlg.Unexpected"]}\n\n{e.Exception.Message}\n\n{Loc.Instance["Dlg.ReadOnly"]}",
             "FoundMySave",
             MessageBoxButton.OK,
             MessageBoxImage.Warning);

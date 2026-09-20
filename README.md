@@ -1,5 +1,7 @@
 # FoundMySave - RuneScape: Dragonwilds
 
+*[English version](README.en.md)*
+
 Retrouve vos mondes Dragonwilds sur votre PC, **y compris ceux du Game Pass**, et les
 prépare pour un serveur dédié.
 
@@ -22,6 +24,7 @@ plutôt que par leur nom.
 - Exporte sous le bon nom, prêt à l'emploi
 - Prépare un dossier complet pour un **serveur dédié**, avec la marche à suivre
 - En option, garde une copie horodatée avant une mise à jour du jeu
+- Interface en français et en anglais, changeable à tout moment
 
 Vos fichiers d'origine ne sont **jamais modifiés**. L'outil lit et copie, rien d'autre.
 
@@ -107,6 +110,8 @@ dotnet run --project tests/FoundMySave.Check   # vérifie le moteur sur vos prop
 dotnet publish src/FoundMySave -c Release -o publish
 ```
 
+L'icône et le logo sont produits par `tools/make-icon.ps1` : aucun binaire n'est ajouté au dépôt à la main.
+
 `FoundMySave.Check` est un outil en console qui parcourt vos sauvegardes, affiche ce
 qu'il reconnaît, et contrôle que tout est cohérent. Il inclut un auto-test qui
 fabrique un fichier au format Game Pass et vérifie qu'il est restitué à l'identique,
@@ -115,9 +120,10 @@ ce qui permet de valider cette partie sans posséder la version Game Pass.
 ## Organisation du code
 
 ```
-src/FoundMySave.Core/     lecture, décompression, détection  (sans interface, testable)
+src/FoundMySave.Core/     lecture, décompression, détection, traductions (sans interface, testable)
 src/FoundMySave/          interface WPF
-tests/FoundMySave.Check/  vérification en console + auto-test
+tests/FoundMySave.Check/  vérification en console + auto-tests
+tools/make-icon.ps1       génère l'icône et le logo
 ```
 
 ## Licence

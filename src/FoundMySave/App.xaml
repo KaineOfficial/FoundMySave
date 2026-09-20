@@ -15,6 +15,97 @@
         <SolidColorBrush x:Key="Ok"        Color="#5FB07A"/>
         <SolidColorBrush x:Key="Warn"      Color="#D98A4A"/>
 
+        <!--
+            Drapeaux dessines plutot qu'images : nets a toute taille, et rien a
+            embarquer. Un DrawingImage est gelable, donc partageable sans risque.
+        -->
+        <DrawingImage x:Key="FlagFrance">
+            <DrawingImage.Drawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="#002395">
+                        <GeometryDrawing.Geometry><RectangleGeometry Rect="0,0,20,40"/></GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="#FFFFFF">
+                        <GeometryDrawing.Geometry><RectangleGeometry Rect="20,0,20,40"/></GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="#ED2939">
+                        <GeometryDrawing.Geometry><RectangleGeometry Rect="40,0,20,40"/></GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                </DrawingGroup>
+            </DrawingImage.Drawing>
+        </DrawingImage>
+
+        <DrawingImage x:Key="FlagUnitedKingdom">
+            <DrawingImage.Drawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="#012169">
+                        <GeometryDrawing.Geometry><RectangleGeometry Rect="0,0,60,40"/></GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <!-- Croix de saint André, en blanc puis rouge -->
+                    <GeometryDrawing>
+                        <GeometryDrawing.Pen><Pen Brush="#FFFFFF" Thickness="8"/></GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <LineGeometry StartPoint="0,0" EndPoint="60,40"/>
+                                <LineGeometry StartPoint="60,0" EndPoint="0,40"/>
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <GeometryDrawing>
+                        <GeometryDrawing.Pen><Pen Brush="#C8102E" Thickness="3.5"/></GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <LineGeometry StartPoint="0,0" EndPoint="60,40"/>
+                                <LineGeometry StartPoint="60,0" EndPoint="0,40"/>
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <!-- Croix de saint Georges -->
+                    <GeometryDrawing Brush="#FFFFFF">
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <RectangleGeometry Rect="24,0,12,40"/>
+                                <RectangleGeometry Rect="0,14,60,12"/>
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="#C8102E">
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <RectangleGeometry Rect="26.5,0,7,40"/>
+                                <RectangleGeometry Rect="0,16.5,60,7"/>
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                </DrawingGroup>
+            </DrawingImage.Drawing>
+        </DrawingImage>
+
+        <!-- Bouton de langue : le drapeau de la langue inactive reste grise. -->
+        <Style x:Key="FlagButton" TargetType="ToggleButton">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="b" CornerRadius="4" Padding="5,4"
+                                Background="Transparent" BorderThickness="1" BorderBrush="Transparent">
+                            <ContentPresenter x:Name="c" Opacity="0.45"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="c" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="c" Property="Opacity" Value="1"/>
+                                <Setter TargetName="b" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                <Setter TargetName="b" Property="Background" Value="#262B3A"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style TargetType="Button">
             <Setter Property="Background" Value="{StaticResource Panel}"/>
             <Setter Property="Foreground" Value="{StaticResource Text}"/>

@@ -1,10 +1,12 @@
 <Window x:Class="FoundMySave.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:FoundMySave"
         Title="FoundMySave - RuneScape: Dragonwilds"
-        Height="620" Width="900"
-        MinHeight="520" MinWidth="760"
+        Height="640" Width="920"
+        MinHeight="540" MinWidth="800"
         WindowStartupLocation="CenterScreen"
+        Icon="Assets/icon.ico"
         Background="{StaticResource Bg}">
 
     <Grid Margin="20">
@@ -16,19 +18,42 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Titre -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,14">
-            <TextBlock Text="FoundMySave" FontSize="24" FontWeight="Light"/>
-            <TextBlock Text="Retrouve vos mondes RuneScape: Dragonwilds, Steam comme Game Pass"
-                       Foreground="{StaticResource TextMuted}" FontSize="12" Margin="0,3,0,0"/>
-        </StackPanel>
+        <!-- Titre, logo et choix de la langue -->
+        <Grid Grid.Row="0" Margin="0,0,0,14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Image Grid.Column="0" Source="Assets/logo.png" Width="52" Height="52"
+                   VerticalAlignment="Center" Margin="0,0,14,0"
+                   RenderOptions.BitmapScalingMode="HighQuality"/>
+
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock Text="FoundMySave" FontSize="24" FontWeight="Light"/>
+                <TextBlock Text="{local:Translate App.Subtitle}"
+                           Foreground="{StaticResource TextMuted}" FontSize="12" Margin="0,3,0,0"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <ToggleButton x:Name="FrButton" Style="{StaticResource FlagButton}"
+                              ToolTip="{local:Translate Lang.French}" Click="OnFrench">
+                    <Image Source="{StaticResource FlagFrance}" Width="30" Height="20"/>
+                </ToggleButton>
+                <ToggleButton x:Name="EnButton" Style="{StaticResource FlagButton}"
+                              ToolTip="{local:Translate Lang.English}" Click="OnEnglish" Margin="6,0,0,0">
+                    <Image Source="{StaticResource FlagUnitedKingdom}" Width="30" Height="20"/>
+                </ToggleButton>
+            </StackPanel>
+        </Grid>
 
         <!-- Installations detectees -->
         <Border Grid.Row="1" Background="{StaticResource Panel}" BorderBrush="{StaticResource PanelEdge}"
                 BorderThickness="1" CornerRadius="6" Padding="14,11" Margin="0,0,0,14">
             <StackPanel>
-                <TextBlock x:Name="StatusTitle" Text="Recherche en cours..." FontSize="13" FontWeight="SemiBold"/>
-                <TextBlock x:Name="StatusDetail" Text="" Foreground="{StaticResource TextMuted}"
+                <TextBlock x:Name="StatusTitle" FontSize="13" FontWeight="SemiBold"/>
+                <TextBlock x:Name="StatusDetail" Foreground="{StaticResource TextMuted}"
                            FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap"/>
             </StackPanel>
         </Border>
@@ -38,11 +63,16 @@
             <ListView x:Name="WorldList" SelectionChanged="OnSelectionChanged">
                 <ListView.View>
                     <GridView>
-                        <GridViewColumn Header="Monde" Width="220" DisplayMemberBinding="{Binding NameDisplay}"/>
-                        <GridViewColumn Header="Derniere sauvegarde" Width="165" DisplayMemberBinding="{Binding SavedDisplay}"/>
-                        <GridViewColumn Header="Taille" Width="90" DisplayMemberBinding="{Binding SizeDisplay}"/>
-                        <GridViewColumn Header="Origine" Width="155" DisplayMemberBinding="{Binding OriginDisplay}"/>
-                        <GridViewColumn Header="Fichier source" Width="170" DisplayMemberBinding="{Binding SourceDisplay}"/>
+                        <GridViewColumn Header="{local:Translate Col.World}" Width="215"
+                                        DisplayMemberBinding="{Binding NameDisplay}"/>
+                        <GridViewColumn Header="{local:Translate Col.LastSave}" Width="165"
+                                        DisplayMemberBinding="{Binding SavedDisplay}"/>
+                        <GridViewColumn Header="{local:Translate Col.Size}" Width="90"
+                                        DisplayMemberBinding="{Binding SizeDisplay}"/>
+                        <GridViewColumn Header="{local:Translate Col.Origin}" Width="165"
+                                        DisplayMemberBinding="{Binding OriginDisplay}"/>
+                        <GridViewColumn Header="{local:Translate Col.File}" Width="175"
+                                        DisplayMemberBinding="{Binding SourceDisplay}"/>
                     </GridView>
                 </ListView.View>
             </ListView>
@@ -50,24 +80,22 @@
             <!-- Message affiche quand la liste est vide -->
             <Border x:Name="EmptyPanel" Background="{StaticResource Panel}" BorderBrush="{StaticResource PanelEdge}"
                     BorderThickness="1" CornerRadius="6" Visibility="Collapsed">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="460">
-                    <TextBlock x:Name="EmptyTitle" Text="Aucun monde trouve" FontSize="15"
-                               HorizontalAlignment="Center"/>
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="470">
+                    <TextBlock x:Name="EmptyTitle" FontSize="15" HorizontalAlignment="Center"/>
                     <TextBlock x:Name="EmptyText" Foreground="{StaticResource TextMuted}" FontSize="12"
                                TextWrapping="Wrap" TextAlignment="Center" Margin="0,8,0,0"/>
                 </StackPanel>
             </Border>
         </Grid>
 
-        <!-- Option de sauvegarde automatique -->
+        <!-- Option de sauvegarde de secours -->
         <Border Grid.Row="3" Background="{StaticResource Panel}" BorderBrush="{StaticResource PanelEdge}"
                 BorderThickness="1" CornerRadius="6" Padding="14,10" Margin="0,14,0,0">
             <StackPanel>
-                <CheckBox x:Name="AutoBackupCheck" Content="Copier aussi une sauvegarde de secours datee"
+                <CheckBox x:Name="AutoBackupCheck" Content="{local:Translate Backup.Label}"
                           Checked="OnAutoBackupToggled" Unchecked="OnAutoBackupToggled"/>
                 <TextBlock x:Name="AutoBackupHint" Foreground="{StaticResource TextMuted}" FontSize="11"
-                           Margin="24,5,0,0" TextWrapping="Wrap"
-                           Text="A chaque export, une copie horodatee est gardee a part. Pratique avant une mise a jour du jeu."/>
+                           Margin="24,5,0,0" TextWrapping="Wrap"/>
             </StackPanel>
         </Border>
 
@@ -81,18 +109,18 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <Button Grid.Column="0" x:Name="RescanButton" Content="Relancer la recherche" Click="OnRescan"/>
+            <Button Grid.Column="0" x:Name="RescanButton" Content="{local:Translate Btn.Rescan}" Click="OnRescan"/>
 
             <TextBlock Grid.Column="1" x:Name="FooterText" VerticalAlignment="Center" Margin="16,0"
                        Foreground="{StaticResource TextMuted}" FontSize="11" TextTrimming="CharacterEllipsis"/>
 
-            <Button Grid.Column="2" x:Name="ExportAllButton" Content="Tout exporter"
+            <Button Grid.Column="2" x:Name="ExportAllButton" Content="{local:Translate Btn.ExportAll}"
                     Click="OnExportAll" Margin="0,0,8,0" IsEnabled="False"/>
 
-            <Button Grid.Column="3" x:Name="ExportServerButton" Content="Exporter pour un serveur"
+            <Button Grid.Column="3" x:Name="ExportServerButton" Content="{local:Translate Btn.ExportServer}"
                     Click="OnExportForServer" Margin="0,0,8,0" IsEnabled="False"/>
 
-            <Button Grid.Column="4" x:Name="ExportButton" Content="Exporter le monde choisi"
+            <Button Grid.Column="4" x:Name="ExportButton" Content="{local:Translate Btn.Export}"
                     Style="{StaticResource PrimaryButton}" Click="OnExport" IsEnabled="False"/>
         </Grid>
     </Grid>

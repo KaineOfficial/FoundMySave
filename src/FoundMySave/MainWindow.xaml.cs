@@ -8,22 +8,27 @@ using Microsoft.Win32;
 
 namespace FoundMySave;
 
-/// <summary>Une ligne de la liste, mise en forme pour l'affichage.</summary>
+/// <summary>
+/// Une ligne de la liste, mise en forme pour l'affichage. Les libelles sont figes a
+/// la construction : la liste est reconstruite quand la langue change.
+/// </summary>
 public sealed class WorldRow(GameSave save)
 {
+    private static Loc L => Loc.Instance;
+
     public GameSave Save { get; } = save;
 
-    public string NameDisplay => Save.Name ?? "(nom illisible)";
+    public string NameDisplay => Save.Name ?? L["Val.UnknownName"];
 
     public string SavedDisplay => Save.SavedAt.HasValue
         ? Save.SavedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
-        : "inconnue";
+        : L["Val.UnknownDate"];
 
     public string SizeDisplay => $"{Save.Size / 1024.0:0.#} Ko";
 
     public string OriginDisplay => Save.Platform == Platform.GamePass
-        ? (Save.WasCompressed ? "Game Pass, decompresse" : "Game Pass")
-        : "Steam";
+        ? (Save.WasCompressed ? L["Val.GamePassZip"] : L["Val.GamePass"])
+        : L["Val.Steam"];
 
     public string SourceDisplay => Path.GetFileName(Save.SourcePath);
 }
@@ -32,10 +37,18 @@ public partial class MainWindow : Window
 {
     private readonly ObservableCollection<WorldRow> _rows = [];
 
+    // Conserves pour pouvoir reconstruire l'affichage quand la langue change,
+    // sans relancer une recherche sur le disque.
+    private IReadOnlyList<Installation> _installations = [];
+    private IReadOnlyList<GameSave> _saves = [];
+
+    private static Loc L => Loc.Instance;
+
     public MainWindow()
     {
         InitializeComponent();
         WorldList.ItemsSource = _rows;
+        UpdateLanguageButtons();
         Loaded += async (_, _) => await ScanAsync();
     }
 
@@ -45,9 +58,9 @@ public partial class MainWindow : Window
     /// </summary>
     private async Task ScanAsync()
     {
-        SetBusy(true);
-        StatusTitle.Text = "Recherche en cours...";
-        StatusDetail.Text = "Analyse des installations Steam et Game Pass.";
+        RescanButton.IsEnabled = false;
+        StatusTitle.Text = L["Status.Searching"];
+        StatusDetail.Text = L["Status.SearchingDetail"];
         _rows.Clear();
         EmptyPanel.Visibility = Visibility.Collapsed;
 
@@ -62,54 +75,62 @@ public partial class MainWindow : Window
             return (found, (IReadOnlyList<GameSave>)all);
         });
 
-        var worlds = SaveScanner.KeepLatestPerWorld(saves);
+        _installations = installations;
+        _saves = saves;
 
+        Refresh();
+        RescanButton.IsEnabled = true;
+    }
+
+    /// <summary>Reconstruit tout l'affichage a partir des resultats deja en memoire.</summary>
+    private void Refresh()
+    {
+        var worlds = SaveScanner.KeepLatestPerWorld(_saves);
+
+        _rows.Clear();
         foreach (var world in worlds)
             _rows.Add(new WorldRow(world));
 
-        UpdateStatus(installations, saves, worlds.Count);
-        SetBusy(false);
+        UpdateStatus(worlds.Count);
+        UpdateBackupHint();
+        UpdateButtons();
     }
 
-    private void UpdateStatus(IReadOnlyList<Installation> installations, IReadOnlyList<GameSave> saves, int worldCount)
+    private void UpdateStatus(int worldCount)
     {
-        var characters = saves.Count(s => s.Kind == SaveKind.Character);
-        var backups = saves.Count(s => s.Kind == SaveKind.World) - worldCount;
+        var characters = _saves.Count(s => s.Kind == SaveKind.Character);
+        var backups = _saves.Count(s => s.Kind == SaveKind.World) - worldCount;
 
-        if (installations.Count == 0)
+        if (_installations.Count == 0)
         {
-            StatusTitle.Text = "Aucune installation du jeu detectee";
-            StatusDetail.Text = "Le jeu n'a peut-etre jamais ete lance sur ce compte Windows, "
-                                + "ou il est installe sous un autre compte.";
-            ShowEmpty("Aucune installation trouvee",
-                "FoundMySave cherche dans le dossier Steam et dans les paquets Windows du Game Pass. "
-                + "Si vous jouez sous un autre compte Windows, lancez l'outil depuis ce compte.");
+            StatusTitle.Text = L["Status.NoInstall"];
+            StatusDetail.Text = L["Status.NoInstallDetail"];
+            ShowEmpty(L["Empty.NoInstallTitle"], L["Empty.NoInstallText"]);
             return;
         }
 
-        StatusTitle.Text = installations.Count == 1
-            ? $"Installation detectee : {installations[0].Label}"
-            : $"{installations.Count} installations detectees";
+        StatusTitle.Text = _installations.Count == 1
+            ? L.Format("Status.OneInstall", _installations[0].Label)
+            : L.Format("Status.ManyInstalls", _installations.Count);
 
-        StatusDetail.Text = string.Join("\n", installations.Select(i => $"{i.Label}  -  {i.SavePath}"));
+        StatusDetail.Text = string.Join("\n", _installations.Select(i => $"{i.Label}  -  {i.SavePath}"));
 
         if (worldCount == 0)
         {
-            ShowEmpty("Aucun monde trouve",
-                "L'installation a bien ete reperee, mais aucun fichier de monde n'y figure. "
-                + (characters > 0
-                    ? $"En revanche {characters} personnage(s) sont presents : vos mondes sont peut-etre uniquement dans le cloud."
-                    : "Creez un monde dans le jeu, quittez proprement, puis relancez la recherche."));
+            var text = L["Empty.NoWorldBase"] + (characters > 0
+                ? L.Format("Empty.NoWorldChars", characters)
+                : L["Empty.NoWorldHint"]);
+
+            ShowEmpty(L["Empty.NoWorldTitle"], text);
             return;
         }
 
         EmptyPanel.Visibility = Visibility.Collapsed;
 
-        // Texte volontairement court : la place disponible se reduit a mesure que
-        // les boutons s'elargissent, et il serait tronque.
-        var parts = new List<string> { $"{worldCount} monde(s)" };
-        if (backups > 0) parts.Add($"{backups} de secours ecartee(s)");
-        if (characters > 0) parts.Add($"{characters} personnage(s)");
+        // Texte volontairement court : la place se reduit quand les boutons s'elargissent.
+        var parts = new List<string> { L.Format("Foot.Worlds", worldCount) };
+        if (backups > 0) parts.Add(L.Format("Foot.Backups", backups));
+        if (characters > 0) parts.Add(L.Format("Foot.Characters", characters));
         FooterText.Text = string.Join("  |  ", parts);
     }
 
@@ -121,12 +142,6 @@ public partial class MainWindow : Window
         FooterText.Text = string.Empty;
     }
 
-    private void SetBusy(bool busy)
-    {
-        RescanButton.IsEnabled = !busy;
-        UpdateButtons();
-    }
-
     private void UpdateButtons()
     {
         var hasSelection = WorldList.SelectedItem is WorldRow;
@@ -135,23 +150,39 @@ public partial class MainWindow : Window
         ExportAllButton.IsEnabled = _rows.Count > 0;
     }
 
+    private void UpdateBackupHint() =>
+        AutoBackupHint.Text = AutoBackupCheck.IsChecked == true ? L["Backup.HintOn"] : L["Backup.HintOff"];
+
+    private void UpdateLanguageButtons()
+    {
+        FrButton.IsChecked = L.IsFrench;
+        EnButton.IsChecked = L.IsEnglish;
+    }
+
+    private void SwitchTo(AppLanguage language)
+    {
+        L.Current = language;
+        Settings.SaveLanguage(language);
+        UpdateLanguageButtons();
+        Refresh();   // les libelles des lignes sont figes, il faut les reconstruire
+    }
+
+    private void OnFrench(object sender, RoutedEventArgs e) => SwitchTo(AppLanguage.French);
+
+    private void OnEnglish(object sender, RoutedEventArgs e) => SwitchTo(AppLanguage.English);
+
     private void OnSelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateButtons();
 
     private async void OnRescan(object sender, RoutedEventArgs e) => await ScanAsync();
 
-    private void OnAutoBackupToggled(object sender, RoutedEventArgs e)
-    {
-        AutoBackupHint.Text = AutoBackupCheck.IsChecked == true
-            ? "Une copie horodatee sera ecrite a cote du fichier exporte."
-            : "A chaque export, une copie horodatee est gardee a part. Pratique avant une mise a jour du jeu.";
-    }
+    private void OnAutoBackupToggled(object sender, RoutedEventArgs e) => UpdateBackupHint();
 
     private void OnExport(object sender, RoutedEventArgs e)
     {
         if (WorldList.SelectedItem is not WorldRow row)
             return;
 
-        var folder = AskFolder($"Ou enregistrer {row.Save.SuggestedFileName} ?");
+        var folder = AskFolder(L.Format("Dlg.WhereExport", row.Save.SuggestedFileName));
         if (folder is null)
             return;
 
@@ -159,7 +190,7 @@ public partial class MainWindow : Window
         {
             var path = SaveExporter.Export(row.Save, folder);
             WriteBackupIfAsked(row.Save, folder);
-            Done($"{Path.GetFileName(path)} enregistre.", folder);
+            Done(L.Format("Dlg.Saved", Path.GetFileName(path)), folder);
         }
         catch (Exception ex)
         {
@@ -172,15 +203,15 @@ public partial class MainWindow : Window
         if (WorldList.SelectedItem is not WorldRow row)
             return;
 
-        var folder = AskFolder("Ou preparer le dossier pour le serveur ?");
+        var folder = AskFolder(L["Dlg.WhereServer"]);
         if (folder is null)
             return;
 
         try
         {
-            var created = SaveExporter.ExportForServer(row.Save, folder);
+            var created = SaveExporter.ExportForServer(row.Save, folder, L.Current);
             WriteBackupIfAsked(row.Save, created);
-            Done("Dossier pret pour le serveur, avec la marche a suivre dans LISEZ-MOI.txt.", created);
+            Done(L["Dlg.ServerReady"], created);
         }
         catch (Exception ex)
         {
@@ -193,7 +224,7 @@ public partial class MainWindow : Window
         if (_rows.Count == 0)
             return;
 
-        var folder = AskFolder("Ou enregistrer tous les mondes ?");
+        var folder = AskFolder(L["Dlg.WhereAll"]);
         if (folder is null)
             return;
 
@@ -205,7 +236,7 @@ public partial class MainWindow : Window
                 WriteBackupIfAsked(row.Save, folder);
             }
 
-            Done($"{_rows.Count} monde(s) enregistre(s).", folder);
+            Done(L.Format("Dlg.SavedAll", _rows.Count), folder);
         }
         catch (Exception ex)
         {
@@ -219,7 +250,7 @@ public partial class MainWindow : Window
         if (AutoBackupCheck.IsChecked != true)
             return;
 
-        var backupFolder = Path.Combine(folder, "sauvegardes");
+        var backupFolder = Path.Combine(folder, L.Current == AppLanguage.French ? "sauvegardes" : "backups");
         Directory.CreateDirectory(backupFolder);
 
         var stamp = (save.SavedAt ?? DateTime.UtcNow).ToLocalTime().ToString("yyyyMMdd-HHmm");
@@ -245,7 +276,7 @@ public partial class MainWindow : Window
     private void Done(string message, string folder)
     {
         var result = MessageBox.Show(
-            message + "\n\nVos fichiers d'origine n'ont pas ete touches.\n\nOuvrir le dossier ?",
+            $"{message}\n\n{L["Dlg.Untouched"]}\n\n{L["Dlg.OpenFolder"]}",
             "FoundMySave",
             MessageBoxButton.YesNo,
             MessageBoxImage.Information);
@@ -257,8 +288,7 @@ public partial class MainWindow : Window
     private static void Failed(Exception ex)
     {
         MessageBox.Show(
-            "L'enregistrement a echoue.\n\n" + ex.Message +
-            "\n\nEssayez un autre dossier, par exemple le Bureau.",
+            $"{L["Dlg.Failed"]}\n\n{ex.Message}\n\n{L["Dlg.TryElsewhere"]}",
             "FoundMySave",
             MessageBoxButton.OK,
             MessageBoxImage.Warning);
