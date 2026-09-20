@@ -15,7 +15,7 @@
     <Product>FoundMySave</Product>
     <Description>Retrouve les sauvegardes de RuneScape: Dragonwilds, y compris celles du Game Pass</Description>
     <Company>KaineOfficial</Company>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
 
     <!-- Un seul fichier a telecharger, qui tourne sans rien installer. -->
     <PublishSingleFile>true</PublishSingleFile>
@@ -38,9 +38,15 @@
     <ProjectReference Include="..\FoundMySave.Core\FoundMySave.Core.csproj" />
   </ItemGroup>
 
-  <!-- Le logo est embarque dans l'executable, rien a livrer a cote. -->
+  <!--
+    Logo et icone sont embarques dans l'executable, rien a livrer a cote.
+    icon.ico doit figurer ici en plus de ApplicationIcon : ce dernier ne pose que
+    l'icone du fichier .exe, alors que Window.Icon lit une ressource a l'execution
+    et echoue au demarrage si elle n'y est pas.
+  -->
   <ItemGroup>
     <Resource Include="Assets\logo.png" />
+    <Resource Include="Assets\icon.ico" />
   </ItemGroup>
 
 </Project>

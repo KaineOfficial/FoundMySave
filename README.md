@@ -108,7 +108,10 @@ cd FoundMySave
 dotnet build -c Release
 dotnet run --project tests/FoundMySave.Check   # vérifie le moteur sur vos propres sauvegardes
 dotnet publish src/FoundMySave -c Release -o publish
+powershell -File tools/smoke-test.ps1              # verifie que la fenetre s'affiche vraiment
 ```
+
+`tools/smoke-test.ps1` lance l'exécutable et contrôle qu'une vraie fenêtre apparaît. Un processus vivant ne suffit pas : si une ressource XAML manque, WPF échoue au chargement et il ne reste qu'une boîte d'erreur.
 
 L'icône et le logo sont produits par `tools/make-icon.ps1` : aucun binaire n'est ajouté au dépôt à la main.
 
@@ -124,6 +127,7 @@ src/FoundMySave.Core/     lecture, décompression, détection, traductions (sans
 src/FoundMySave/          interface WPF
 tests/FoundMySave.Check/  vérification en console + auto-tests
 tools/make-icon.ps1       génère l'icône et le logo
+tools/smoke-test.ps1      vérifie que la fenêtre s'ouvre vraiment
 ```
 
 ## Licence
