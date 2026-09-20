@@ -1,0 +1,60 @@
+name: Compilation et publication
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer le SDK .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restaurer
+        run: dotnet restore
+
+      - name: Compiler
+        run: dotnet build -c Release --no-restore
+
+      # Le moteur est verifie ici : sur un agent sans le jeu, la detection ne trouve
+      # rien et le programme sort en code 1. C'est attendu, on controle donc seulement
+      # qu'il ne part pas en erreur inattendue.
+      - name: Verifier le moteur
+        shell: pwsh
+        run: |
+          dotnet run --project tests/FoundMySave.Check -c Release --no-build
+          if ($LASTEXITCODE -eq 2) {
+            Write-Error "Le moteur signale des incoherences."
+            exit 1
+          }
+          Write-Host "Moteur verifie (code $LASTEXITCODE)."
+
+      - name: Publier l'executable
+        run: dotnet publish src/FoundMySave/FoundMySave.csproj -c Release -o publish --no-restore
+
+      - name: Deposer l'executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: FoundMySave
+          path: publish/FoundMySave.exe
+          if-no-files-found: error
+
+      - name: Creer la version
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: publish/FoundMySave.exe
+          generate_release_notes: true

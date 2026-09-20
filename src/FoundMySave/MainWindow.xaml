@@ -1,0 +1,99 @@
+<Window x:Class="FoundMySave.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="FoundMySave - RuneScape: Dragonwilds"
+        Height="620" Width="900"
+        MinHeight="520" MinWidth="760"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource Bg}">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Titre -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,14">
+            <TextBlock Text="FoundMySave" FontSize="24" FontWeight="Light"/>
+            <TextBlock Text="Retrouve vos mondes RuneScape: Dragonwilds, Steam comme Game Pass"
+                       Foreground="{StaticResource TextMuted}" FontSize="12" Margin="0,3,0,0"/>
+        </StackPanel>
+
+        <!-- Installations detectees -->
+        <Border Grid.Row="1" Background="{StaticResource Panel}" BorderBrush="{StaticResource PanelEdge}"
+                BorderThickness="1" CornerRadius="6" Padding="14,11" Margin="0,0,0,14">
+            <StackPanel>
+                <TextBlock x:Name="StatusTitle" Text="Recherche en cours..." FontSize="13" FontWeight="SemiBold"/>
+                <TextBlock x:Name="StatusDetail" Text="" Foreground="{StaticResource TextMuted}"
+                           FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Liste des mondes -->
+        <Grid Grid.Row="2">
+            <ListView x:Name="WorldList" SelectionChanged="OnSelectionChanged">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="Monde" Width="220" DisplayMemberBinding="{Binding NameDisplay}"/>
+                        <GridViewColumn Header="Derniere sauvegarde" Width="165" DisplayMemberBinding="{Binding SavedDisplay}"/>
+                        <GridViewColumn Header="Taille" Width="90" DisplayMemberBinding="{Binding SizeDisplay}"/>
+                        <GridViewColumn Header="Origine" Width="155" DisplayMemberBinding="{Binding OriginDisplay}"/>
+                        <GridViewColumn Header="Fichier source" Width="170" DisplayMemberBinding="{Binding SourceDisplay}"/>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+
+            <!-- Message affiche quand la liste est vide -->
+            <Border x:Name="EmptyPanel" Background="{StaticResource Panel}" BorderBrush="{StaticResource PanelEdge}"
+                    BorderThickness="1" CornerRadius="6" Visibility="Collapsed">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="460">
+                    <TextBlock x:Name="EmptyTitle" Text="Aucun monde trouve" FontSize="15"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="EmptyText" Foreground="{StaticResource TextMuted}" FontSize="12"
+                               TextWrapping="Wrap" TextAlignment="Center" Margin="0,8,0,0"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Option de sauvegarde automatique -->
+        <Border Grid.Row="3" Background="{StaticResource Panel}" BorderBrush="{StaticResource PanelEdge}"
+                BorderThickness="1" CornerRadius="6" Padding="14,10" Margin="0,14,0,0">
+            <StackPanel>
+                <CheckBox x:Name="AutoBackupCheck" Content="Copier aussi une sauvegarde de secours datee"
+                          Checked="OnAutoBackupToggled" Unchecked="OnAutoBackupToggled"/>
+                <TextBlock x:Name="AutoBackupHint" Foreground="{StaticResource TextMuted}" FontSize="11"
+                           Margin="24,5,0,0" TextWrapping="Wrap"
+                           Text="A chaque export, une copie horodatee est gardee a part. Pratique avant une mise a jour du jeu."/>
+            </StackPanel>
+        </Border>
+
+        <!-- Actions -->
+        <Grid Grid.Row="4" Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="0" x:Name="RescanButton" Content="Relancer la recherche" Click="OnRescan"/>
+
+            <TextBlock Grid.Column="1" x:Name="FooterText" VerticalAlignment="Center" Margin="16,0"
+                       Foreground="{StaticResource TextMuted}" FontSize="11" TextTrimming="CharacterEllipsis"/>
+
+            <Button Grid.Column="2" x:Name="ExportAllButton" Content="Tout exporter"
+                    Click="OnExportAll" Margin="0,0,8,0" IsEnabled="False"/>
+
+            <Button Grid.Column="3" x:Name="ExportServerButton" Content="Exporter pour un serveur"
+                    Click="OnExportForServer" Margin="0,0,8,0" IsEnabled="False"/>
+
+            <Button Grid.Column="4" x:Name="ExportButton" Content="Exporter le monde choisi"
+                    Style="{StaticResource PrimaryButton}" Click="OnExport" IsEnabled="False"/>
+        </Grid>
+    </Grid>
+</Window>

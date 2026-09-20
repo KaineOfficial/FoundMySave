@@ -1,0 +1,29 @@
+## Sorties de compilation
+bin/
+obj/
+publish/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Outils
+.vs/
+.vscode/
+.idea/
+
+## Divers
+*.log
+*.tmp
+Thumbs.db
+desktop.ini
+
+## Sauvegardes de jeu : rien de tout ça ne doit finir dans le depot
+*.sav
+*.sav.*
+*.verbackup
+DragonwildsSaves/

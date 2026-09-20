@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+
+    <AssemblyName>FoundMySave</AssemblyName>
+    <RootNamespace>FoundMySave</RootNamespace>
+    <Product>FoundMySave</Product>
+    <Description>Retrouve les sauvegardes de RuneScape: Dragonwilds, y compris celles du Game Pass</Description>
+    <Company>KaineOfficial</Company>
+    <Version>1.0.0</Version>
+
+    <!-- Un seul fichier a telecharger, qui tourne sans rien installer. -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+
+    <!-- Le decoupage est incompatible avec WPF : il retire des types resolus a l'execution. -->
+    <PublishTrimmed>false</PublishTrimmed>
+
+    <SatelliteResourceLanguages>fr;en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <!-- L'icone n'est utilisee que si elle existe, pour ne jamais casser la compilation. -->
+  <PropertyGroup Condition="Exists('Assets\icon.ico')">
+    <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FoundMySave.Core\FoundMySave.Core.csproj" />
+  </ItemGroup>
+
+</Project>
