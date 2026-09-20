@@ -105,10 +105,12 @@ public partial class MainWindow : Window
 
         EmptyPanel.Visibility = Visibility.Collapsed;
 
+        // Texte volontairement court : la place disponible se reduit a mesure que
+        // les boutons s'elargissent, et il serait tronque.
         var parts = new List<string> { $"{worldCount} monde(s)" };
-        if (backups > 0) parts.Add($"{backups} sauvegarde(s) de secours ecartee(s)");
+        if (backups > 0) parts.Add($"{backups} de secours ecartee(s)");
         if (characters > 0) parts.Add($"{characters} personnage(s)");
-        FooterText.Text = string.Join("   |   ", parts);
+        FooterText.Text = string.Join("  |  ", parts);
     }
 
     private void ShowEmpty(string title, string text)

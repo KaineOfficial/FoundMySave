@@ -74,6 +74,37 @@
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
 
+        <!--
+            Sans ce style, la ligne selectionnee garde le fond systeme de Windows,
+            clair, sous un texte clair : elle devient illisible. On redefinit donc
+            les deux etats, survol et selection, avec un contraste suffisant.
+        -->
+        <Style TargetType="ListViewItem">
+            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+            <Setter Property="Padding" Value="4,7"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListViewItem">
+                        <Border x:Name="row" Background="Transparent" BorderThickness="0,0,0,1"
+                                BorderBrush="#232733" Padding="{TemplateBinding Padding}">
+                            <GridViewRowPresenter Content="{TemplateBinding Content}"
+                                                  Columns="{TemplateBinding GridView.ColumnCollection}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="row" Property="Background" Value="#232838"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="row" Property="Background" Value="#3A2E14"/>
+                                <Setter TargetName="row" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                <Setter Property="Foreground" Value="#F6E4C0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style TargetType="GridViewColumnHeader">
             <Setter Property="Background" Value="#232733"/>
             <Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
