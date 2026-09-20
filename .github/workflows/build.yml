@@ -29,18 +29,19 @@ jobs:
       - name: Compiler
         run: dotnet build -c Release --no-restore
 
-      # Le moteur est verifie ici : sur un agent sans le jeu, la detection ne trouve
-      # rien et le programme sort en code 1. C'est attendu, on controle donc seulement
-      # qu'il ne part pas en erreur inattendue.
+      # L'auto-test fabrique lui-meme un monde et sa version compressee facon Game Pass,
+      # puis verifie que le moteur les relit a l'identique. Il ne depend donc pas du jeu
+      # et a tout son sens sur un agent de compilation.
       - name: Verifier le moteur
         shell: pwsh
         run: |
           dotnet run --project tests/FoundMySave.Check -c Release --no-build
-          if ($LASTEXITCODE -eq 2) {
-            Write-Error "Le moteur signale des incoherences."
+          $code = $LASTEXITCODE
+          if ($code -ne 0) {
+            Write-Error "Le moteur signale des incoherences (code $code)."
             exit 1
           }
-          Write-Host "Moteur verifie (code $LASTEXITCODE)."
+          Write-Host "Moteur verifie."
 
       - name: Publier l'executable
         run: dotnet publish src/FoundMySave/FoundMySave.csproj -c Release -o publish --no-restore

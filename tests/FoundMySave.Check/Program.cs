@@ -10,29 +10,34 @@ Console.WriteLine(new string('=', 60));
 Console.WriteLine();
 
 var installations = SaveScanner.FindInstallations();
+var all = new List<GameSave>();
 
+// L'absence du jeu n'est pas une anomalie : sur une machine de compilation, seul
+// l'auto-test plus bas a un sens, et lui n'a besoin de rien d'installe.
 if (installations.Count == 0)
 {
-    Console.WriteLine("Aucune installation detectee.");
-    return 1;
+    Console.WriteLine("Aucune installation du jeu sur cette machine.");
+    Console.WriteLine("Seul l'auto-test du format sera execute.");
+    Console.WriteLine();
 }
-
-Console.WriteLine($"{installations.Count} installation(s) :");
-foreach (var installation in installations)
-    Console.WriteLine($"  [{installation.Platform}] {installation.Label}\n      {installation.SavePath}");
-Console.WriteLine();
-
-var all = new List<GameSave>();
-foreach (var installation in installations)
+else
 {
-    var watch = System.Diagnostics.Stopwatch.StartNew();
-    var found = SaveScanner.Scan(installation);
-    watch.Stop();
+    Console.WriteLine($"{installations.Count} installation(s) :");
+    foreach (var installation in installations)
+        Console.WriteLine($"  [{installation.Platform}] {installation.Label}\n      {installation.SavePath}");
+    Console.WriteLine();
 
-    Console.WriteLine($"{installation.Label} : {found.Count} fichier(s) reconnu(s) en {watch.ElapsedMilliseconds} ms");
-    all.AddRange(found);
+    foreach (var installation in installations)
+    {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var found = SaveScanner.Scan(installation);
+        watch.Stop();
+
+        Console.WriteLine($"{installation.Label} : {found.Count} fichier(s) reconnu(s) en {watch.ElapsedMilliseconds} ms");
+        all.AddRange(found);
+    }
+    Console.WriteLine();
 }
-Console.WriteLine();
 
 Console.WriteLine("TOUT CE QUI A ETE RECONNU");
 Console.WriteLine(new string('-', 60));
@@ -55,8 +60,9 @@ Console.WriteLine();
 // Controles de coherence : ce sont eux qui disent si le moteur fait vraiment son travail.
 var problems = new List<string>();
 
-if (worlds.Count == 0)
-    problems.Add("aucun monde retenu");
+// Un monde manquant n'est une anomalie que si une installation a ete trouvee.
+if (worlds.Count == 0 && installations.Count > 0 && all.Count > 0)
+    problems.Add("des fichiers ont ete reconnus mais aucun monde n'a ete retenu");
 
 foreach (var world in worlds)
 {
@@ -77,10 +83,17 @@ foreach (var world in worlds)
 Console.WriteLine("AUTO-TEST DU FORMAT GAME PASS");
 Console.WriteLine(new string('-', 60));
 
-var sample = worlds.FirstOrDefault() ?? all.FirstOrDefault(s => s.Kind == SaveKind.World);
+// A defaut de vrai monde, on en fabrique un minimal : l'auto-test tourne ainsi
+// partout, y compris sur une machine de compilation ou le jeu n'est pas installe.
+var sampleContent = worlds.FirstOrDefault()?.Content
+                    ?? all.FirstOrDefault(s => s.Kind == SaveKind.World)?.Content
+                    ?? BuildSyntheticWorld("MondeDeTest", new DateTime(2026, 9, 20, 12, 0, 0, DateTimeKind.Utc));
+
+var sample = SaveReader.TryRead(WriteTemp(sampleContent), Platform.Steam);
+
 if (sample is null)
 {
-    Console.WriteLine("  ignore : aucun monde disponible comme modele.");
+    problems.Add("auto-test : le monde de reference n'a pas ete reconnu");
 }
 else
 {
@@ -113,6 +126,10 @@ else
 }
 Console.WriteLine();
 
+// Le dossier de travail de l'auto-test n'a plus lieu d'etre.
+try { Directory.Delete(Path.Combine(Path.GetTempPath(), "FoundMySave.SelfTest"), recursive: true); }
+catch { /* sans consequence */ }
+
 if (problems.Count == 0)
 {
     Console.WriteLine("RESULTAT : tout est coherent.");
@@ -123,6 +140,52 @@ Console.WriteLine("RESULTAT : anomalies detectees");
 foreach (var problem in problems)
     Console.WriteLine($"  - {problem}");
 return 2;
+
+// Ecrit un contenu dans un fichier temporaire et renvoie son chemin.
+static string WriteTemp(byte[] content)
+{
+    var folder = Path.Combine(Path.GetTempPath(), "FoundMySave.SelfTest");
+    Directory.CreateDirectory(folder);
+
+    var path = Path.Combine(folder, Guid.NewGuid().ToString("N") + ".sav");
+    File.WriteAllBytes(path, content);
+    return path;
+}
+
+/// <summary>
+/// Fabrique un monde minimal mais conforme a ce que le moteur attend : la signature
+/// SAVE, une date ISO, puis le nom du monde juste avant le marqueur L_World.
+/// Les champs sont separes par des octets nuls, comme dans un vrai fichier, sans quoi
+/// les chaines se toucheraient et le nom serait mal lu.
+/// </summary>
+static byte[] BuildSyntheticWorld(string worldName, DateTime savedAt)
+{
+    var output = new MemoryStream();
+
+    void Write(string text)
+    {
+        var bytes = System.Text.Encoding.ASCII.GetBytes(text);
+        output.Write(bytes, 0, bytes.Length);
+    }
+
+    void Separator() => output.Write(new byte[] { 0, 0, 0, 0 }, 0, 4);
+
+    Write("SAVE");
+    Separator();
+    Write("INFO");
+    Separator();
+    Write(savedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
+    Separator();
+    Write(worldName);
+    Separator();
+    Write("L_World");
+    Separator();
+
+    // Un peu de corps, pour que le fichier ne soit pas degenere.
+    output.Write(new byte[2048], 0, 2048);
+
+    return output.ToArray();
+}
 
 // Reproduit l'enveloppe du Game Pass : 12 octets quelconques, puis un flux zlib.
 static byte[] PackLikeGamePass(byte[] content)
