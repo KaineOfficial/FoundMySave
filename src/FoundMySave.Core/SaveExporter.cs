@@ -96,7 +96,7 @@ public static class SaveExporter
         sb.AppendLine("configuration du serveur. C'est pourquoi importer son monde est");
         sb.AppendLine("le seul moyen de les retrouver sur un serveur dedie.");
         sb.AppendLine();
-        sb.AppendLine("Genere par FoundMySave — https://github.com/KaineOfficial/FoundMySave");
+        sb.AppendLine("Genere par FoundMySave - https://github.com/KaineOfficial/FoundMySave");
 
         return sb.ToString();
     }

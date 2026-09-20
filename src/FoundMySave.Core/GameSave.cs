@@ -70,7 +70,7 @@ public sealed class GameSave
 
     /// <summary>Libelle court pour l'affichage.</summary>
     public string Display =>
-        $"{Name ?? "(nom inconnu)"} — {Size / 1024.0:0.#} Ko — " +
+        $"{Name ?? "(nom inconnu)"} - {Size / 1024.0:0.#} Ko - " +
         (SavedAt.HasValue ? SavedAt.Value.ToString("dd/MM/yyyy HH:mm") : "date inconnue");
 
     /// <summary>Retire les caracteres qu'un nom de fichier Windows n'accepte pas.</summary>

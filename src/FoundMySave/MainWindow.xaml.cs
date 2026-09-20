@@ -31,7 +31,6 @@ public sealed class WorldRow(GameSave save)
 public partial class MainWindow : Window
 {
     private readonly ObservableCollection<WorldRow> _rows = [];
-    private IReadOnlyList<GameSave> _allSaves = [];
 
     public MainWindow()
     {
@@ -63,7 +62,6 @@ public partial class MainWindow : Window
             return (found, (IReadOnlyList<GameSave>)all);
         });
 
-        _allSaves = saves;
         var worlds = SaveScanner.KeepLatestPerWorld(saves);
 
         foreach (var world in worlds)
@@ -93,7 +91,7 @@ public partial class MainWindow : Window
             ? $"Installation detectee : {installations[0].Label}"
             : $"{installations.Count} installations detectees";
 
-        StatusDetail.Text = string.Join("\n", installations.Select(i => $"{i.Label}  —  {i.SavePath}"));
+        StatusDetail.Text = string.Join("\n", installations.Select(i => $"{i.Label}  -  {i.SavePath}"));
 
         if (worldCount == 0)
         {
