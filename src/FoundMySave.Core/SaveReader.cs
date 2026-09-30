@@ -76,7 +76,7 @@ public static partial class SaveReader
                     SourcePath = path,
                     Platform = platform,
                     Kind = SaveKind.World,
-                    Name = ExtractWorldName(header),
+                    Name = ExtractWorldName(content),
                     SavedAt = ExtractSavedAt(header),
                     Size = content.LongLength,
                     SizeOnDisk = info.Length,
@@ -148,16 +148,101 @@ public static partial class SaveReader
     private static string ReadHeader(byte[] content)
     {
         var length = Math.Min(HeaderScanLength, content.Length);
-        return Encoding.ASCII.GetString(content, 0, length);
+        return Encoding.UTF8.GetString(content, 0, length);
     }
 
     /// <summary>
     /// Le nom du monde est la derniere chaine lisible avant "L_World". La table des noms
     /// de champs qui suit ne peut pas servir : "WorldName" y est suivi de "WorldMapName",
     /// c'est-a-dire du champ suivant et non de sa valeur.
+    /// Le nom peut etre encode en UTF-16 LE (chaque caractere sur 2 octets).
     /// </summary>
-    private static string? ExtractWorldName(string header)
+    private static string? ExtractWorldName(byte[] content)
     {
+        // Chercher le marqueur L_World dans les premiers octets
+        var searchLimit = Math.Min(HeaderScanLength, content.Length);
+        var markerBytes = Encoding.ASCII.GetBytes(MapMarker);
+        var markerPos = -1;
+
+        for (var i = 0; i < searchLimit - markerBytes.Length; i++)
+        {
+            var found = true;
+            for (var j = 0; j < markerBytes.Length; j++)
+            {
+                if (content[i + j] != markerBytes[j])
+                {
+                    found = false;
+                    break;
+                }
+            }
+            if (found)
+            {
+                markerPos = i;
+                break;
+            }
+        }
+
+        if (markerPos <= 10)
+            return null;
+
+        // Le nom est typiquement encodé en UTF-16 LE juste avant le marqueur.
+        // Format observé : [nom UTF-16][00 00][XX 00 00 00]L_World
+        // On cherche la fin de la chaîne UTF-16 (double null), puis on remonte jusqu'au début.
+
+        // Trouver la fin de la chaîne UTF-16 (00 00 avant les 4 bytes qui précèdent L_World)
+        var stringEnd = markerPos - 4;
+
+        // Vérifier qu'on a bien un double null à cet endroit
+        if (stringEnd >= 2 && content[stringEnd - 2] == 0 && content[stringEnd - 1] == 0)
+        {
+            // Remonter pour trouver le début de la chaîne UTF-16
+            var stringStart = stringEnd - 2;
+
+            // Remonter tant qu'on trouve des paires de bytes qui ressemblent à du texte UTF-16
+            while (stringStart >= 2)
+            {
+                var byte1 = content[stringStart - 2];
+                var byte2 = content[stringStart - 1];
+
+                // En UTF-16 LE, les caractères ASCII ont le second byte à 0
+                // Les caractères accentués latins ont le second byte entre 0x00 et 0x01
+                if (byte2 == 0 && (byte1 >= 0x20 && byte1 <= 0x7E || byte1 >= 0xA0))
+                {
+                    stringStart -= 2;
+                }
+                else if (byte2 == 0x00 && byte1 >= 0xA0 || byte2 == 0x01 && byte1 < 0x80)
+                {
+                    stringStart -= 2;
+                }
+                else
+                {
+                    // Fin du pattern UTF-16 lisible
+                    break;
+                }
+            }
+
+            var length = stringEnd - 2 - stringStart;
+            if (length > 0 && length % 2 == 0 && length <= 200)
+            {
+                try
+                {
+                    var decoded = Encoding.Unicode.GetString(content, stringStart, length);
+                    var cleaned = decoded.Trim('\0', ' ', '\r', '\n', '\t');
+
+                    if (!string.IsNullOrWhiteSpace(cleaned) && cleaned.Length >= 1)
+                    {
+                        return cleaned;
+                    }
+                }
+                catch
+                {
+                    // Décodage échoué
+                }
+            }
+        }
+
+        // Fallback: méthode originale avec UTF-8
+        var header = Encoding.UTF8.GetString(content, 0, searchLimit);
         var marker = header.IndexOf(MapMarker, StringComparison.Ordinal);
         if (marker <= 0)
             return null;
@@ -221,7 +306,7 @@ public static partial class SaveReader
         return true;
     }
 
-    [GeneratedRegex(@"[\x20-\x7E]{3,}")]
+    [GeneratedRegex(@"[\u0020-\u007E\u00A0-\uFFFF]{3,}")]
     private static partial Regex PrintableRun();
 
     [GeneratedRegex(@"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")]
